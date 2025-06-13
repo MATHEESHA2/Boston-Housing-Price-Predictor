@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Boston Housing Price Predictor</title>
+  <style>
+    :root {
+      --primary: #ffd700;
+      --bg-dark: #0f172a;
+      --bg-light: #f4f4f4;
+      --text-dark: #111827;
+      --text-light: #f1f5f9;
+      --tooltip-dark: #facc15;
+      --tooltip-light: #8a6d00;
+      --glass-dark: rgba(255, 255, 255, 0.05);
+      --glass-light: rgba(255, 255, 255, 0.4);
+      --border-dark: rgba(255, 255, 255, 0.15);
+      --border-light: rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      transition: background 0.4s ease, color 0.4s ease;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body.light {
+      background: var(--bg-light);
+      color: var(--text-dark);
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle at top left, #ffd70033, transparent);
+      filter: blur(150px);
+      opacity: 0.6;
+      z-index: 0;
+      top: -150px;
+      left: -150px;
+      pointer-events: none;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-dark);
+      border-radius: 25px;
+      padding: 40px;
+      width: 95%;
+      max-width: 1300px;
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.6),
+        inset 0 0 30px rgba(255, 255, 255, 0.05),
+        0 0 60px rgba(255, 215, 0, 0.1);
+      position: relative;
+      z-index: 1;
+      transition: all 0.4s ease;
+    }
+
+    body.light .card {
+      background: rgba(255, 255, 255, 0.35);
+      border: 1px solid var(--border-light);
+      box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.2),
+        inset 0 0 30px rgba(255, 255, 255, 0.15),
+        0 0 30px rgba(255, 215, 0, 0.1);
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 2.5em;
+      color: var(--primary);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    body.light h2 {
+      animation: none;
+      text-shadow: none;
+    }
+
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 5px var(--primary), 0 0 10px var(--primary);
+      }
+
+      to {
+        text-shadow: 0 0 15px var(--primary), 0 0 25px var(--primary);
+      }
+    }
+
+    .toggle-mode {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 2;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      background-color: #ccc;
+      border-radius: 34px;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transition: 0.4s;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: #ffd700;
+      border-radius: 50%;
+      transition: 0.4s;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+    }
+
+    input:checked + .slider {
+      background-color: #444;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(26px);
+      background-color: #fff176;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px 30px;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .tooltip {
+      font-size: 12px;
+      margin-bottom: 5px;
+      color: var(--tooltip-dark);
+    }
+
+    body.light .tooltip {
+      color: var(--tooltip-light);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: inherit;
+      font-size: 15px;
+      backdrop-filter: blur(10px);
+      box-shadow:
+        inset 2px 2px 6px rgba(255, 255, 255, 0.05),
+        inset -3px -3px 7px rgba(0, 0, 0, 0.4),
+        0 4px 10px rgba(0, 0, 0, 0.2);
+      transition: 0.3s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow:
+        0 0 10px var(--primary),
+        inset 0 0 8px rgba(255, 255, 255, 0.2);
+    }
+
+    button[type="submit"] {
+      grid-column: span 4;
+      margin-top: 30px;
+      padding: 16px 0;
+      font-size: 18px;
+      font-weight: bold;
+      color: #111;
+      background: linear-gradient(145deg, #fff5b7, #ffd700);
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        inset -2px -2px 5px rgba(255, 255, 255, 0.4),
+        inset 2px 2px 8px rgba(0, 0, 0, 0.1),
+        0 8px 20px rgba(255, 215, 0, 0.4),
+        0 0 5px rgba(255, 215, 0, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button[type="submit"]::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -75%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.6), transparent);
+      transform: skewX(-20deg);
+      animation: shine 2.5s infinite linear;
+    }
+
+    @keyframes shine {
+      0% {
+        left: -75%;
+      }
+
+      100% {
+        left: 130%;
+      }
+    }
+
+    button[type="submit"]:hover {
+      transform: translateY(-3px);
+      box-shadow:
+        0 12px 30px rgba(255, 215, 0, 0.6),
+        inset 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+
+    .error {
+      color: #f87171;
+      grid-column: span 4;
+      text-align: center;
+    }
+
+    @media (max-width: 1024px) {
+      button[type="submit"] {
+        grid-column: span 2;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="toggle-mode">
+    <label class="switch">
+      <input type="checkbox" onclick="document.body.classList.toggle('light')" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>Boston Housing Price Predictor</h2>
+    {% if prediction %}
+    <p><strong>Predicted Price:</strong> ${{ prediction }}</p>
+    {% elif error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
+    <form id="form" action="/predict" method="post" novalidate>
+      {% set fields = [
+      ('CRIM', 'Per capita crime rate by town'),
+      ('ZN', 'Proportion of residential land zoned for large lots'),
+      ('INDUS', 'Proportion of non-retail business acres per town'),
+      ('CHAS', 'Charles River dummy variable (1 if tract bounds river; 0 otherwise)'),
+      ('NOX', 'Nitric oxides concentration (parts per 10 million)'),
+      ('RM', 'Average number of rooms per dwelling'),
+      ('AGE', 'Proportion of owner-occupied units built prior to 1940'),
+      ('DIS', 'Weighted distances to five Boston employment centers'),
+      ('RAD', 'Index of accessibility to radial highways'),
+      ('TAX', 'Full-value property-tax rate per $10,000'),
+      ('PTRATIO', 'Pupil-teacher ratio by town'),
+      ('B', '1000(Bk - 0.63)^2 where Bk is proportion of Black residents'),
+      ('LSTAT', 'Lower status of the population (%)')
+      ] %}
+      {% for field, tip in fields %}
+      <div>
+        <label for="{{ field }}">{{ field }}</label>
+        <div class="tooltip">{{ tip }}</div>
+        <input type="text" name="{{ field }}" id="{{ field }}" required pattern="^-?\d*\.?\d+$" />
+      </div>
+      {% endfor %}
+      <button type="submit">Predict</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('form').addEventListener('submit', function (e) {
+      const inputs = document.querySelectorAll('input[type="text"]');
+      let valid = true;
+      inputs.forEach(input => {
+        if (!input.checkValidity()) {
+          valid = false;
+          input.reportValidity();
+        }
+      });
+      if (!valid) e.preventDefault();
+    });
+  </script>
+</body>
+
+</html>

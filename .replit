@@ -1,0 +1,9 @@
+modules = ["web", "python-3.12"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["glibcLocales", "libxcrypt", "pkg-config", "xsimd"]
+
+[[ports]]
+localPort = 81
+externalPort = 80
